@@ -1,8 +1,22 @@
 from langchain.tools import Tool
+from tools.retrosynthesis import RetroSynthesis
 from tools.funcgroups import FuncGroups
 from tools.name2smiles import NameToSMILES
 from tools.smiles2name import SMILES2Name
 from tools.bond import BondChangeAnalyzer  
+
+def get_retrosynthesis_tool():
+    tool = RetroSynthesis()
+    return Tool(
+        name="RetroSynthesis",
+        description=(
+            "Use this tool to search for retrosynthesis pathways for a chemical compound. "
+            "Provide a compound name (IUPAC or common name) as input. "
+            "Returns a list of reaction steps, conditions, and SMILES notation."
+        ),
+        func=tool._run,
+    )
+
 
 def get_funcgroups_tool():
     tool = FuncGroups()
