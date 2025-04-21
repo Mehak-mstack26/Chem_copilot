@@ -1,6 +1,22 @@
-# Chem Copilot
+# ChemCoPilot
 
-Chem CoPilot is an AI-powered chemistry assistant designed to help researchers, students, and professionals extract, analyze, and understand chemical information from various sources, including patents and structured datasets.
+**ChemCoPilot** is an AI-powered chemistry assistant where users can input diverse chemistry-related queries at both the **reaction level** and **molecule level**. It supports functional group detection, bond analysis, and overall understanding of reactions and molecular structures.
+
+## 🔬 Features
+
+- Query chemical information at the **reaction** or **molecule** level
+- Perform **functional group** and **bond analysis** on any reaction
+- Generate **reaction SMILES** from compound names
+- Analyze reactions directly using powerful AI tools
+
+## 🧭 Workflow (UI Overview)
+
+1. The workflow begins by **taking a compound name** as input.
+2. Our **API processes** this input and returns **three outputs**.
+3. These outputs are then passed through the **OpenAI API**, which generates their corresponding **reaction SMILES**.
+4. The generated reaction SMILES are sent to the **second tab (Reaction Analysis)** for further processing, where the **final output** is generated.
+5. Additionally, users can **directly enter simple queries** in the **second tab** to use specific tools without going through the first step.
+
 
 ## Tools & Libraries Used
 
@@ -15,6 +31,7 @@ The following libraries are used in this project:
 * **Requests:** For making HTTP requests.
 * **Python-dotenv:** For loading environment variables from `.env`.
 
+
 ## Installation Guide
 
 ### Prerequisites:
@@ -23,8 +40,14 @@ The following libraries are used in this project:
 * **Conda:** To install RDKit.
 
 ### Step-by-Step Setup:
+1. First, **clone the repository**:
 
-1.  **Create a Virtual Environment:**
+    ```bash
+    git clone https://github.com/your-username/chemcopilot.git
+    cd chemcopilot
+    ```
+
+2.  **Create a Virtual Environment:**
     To ensure a clean environment for your project, it's recommended to use a virtual environment. You can do so with the following commands:
 
     ```bash
@@ -33,7 +56,7 @@ The following libraries are used in this project:
     .\chem_env\Scripts\activate    # On Windows
     ```
 
-2.  **Install Dependencies:**
+3.  **Install Dependencies:**
     Once the virtual environment is set up, install the dependencies listed in the `requirements.txt` file using pip:
 
     ```bash
@@ -46,14 +69,14 @@ The following libraries are used in this project:
     conda install -c conda-forge rdkit=2022.9.5
     ```
 
-3.  **Set Up OpenAI API Key:**
+4.  **Set Up OpenAI API Key:**
     Create a `.env` file in the root of the project and add the OpenAI API key as follows:
 
     ```ini
     OPENAI_API_KEY=your-openai-api-key-here
     ```
 
-4.  **Running the Application:**
+5.  **Running the Application:**
     To run the app, use the following Streamlit command:
 
     ```bash
