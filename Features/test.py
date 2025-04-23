@@ -243,6 +243,16 @@ def handle_full_info(query, reaction_smiles):
     tool_dict = {tool.name.lower(): tool for tool in tools}
 
     try:
+        # First, visualize the reaction
+        visualizer_tool = tool_dict.get("chemvisualizer")
+        if visualizer_tool:
+            try:
+                full_info['Visualization'] = visualizer_tool.run(reaction_smiles)
+            except Exception as e:
+                full_info['Visualization'] = f"Error visualizing reaction: {str(e)}"
+        else:
+            full_info['Visualization'] = "ChemVisualizer tool not found"
+
         # Run smiles2name
         name_tool = tool_dict.get("smiles2name")
         if name_tool:
@@ -272,28 +282,63 @@ def handle_full_info(query, reaction_smiles):
                 full_info['Bond Changes'] = f"Error analyzing bond changes: {str(e)}"
         else:
             full_info['Bond Changes'] = "BondChangeAnalyzer tool not found"
+            
+        # Run reaction classifier - new addition
+        reaction_classifier_tool = tool_dict.get("reactionclassifier")
+        if reaction_classifier_tool:
+            try:
+                full_info['Reaction Classification'] = reaction_classifier_tool.run(reaction_smiles)
+            except Exception as e:
+                full_info['Reaction Classification'] = f"Error classifying reaction: {str(e)}"
+        else:
+            full_info['Reaction Classification'] = "ReactionClassifier tool not found"
 
-        # Combine and ask GPT for final answer
-        final_prompt = f"""You are a chemistry expert. Here is a full reaction analysis:
+        # Combine all information and ask LLM for final comprehensive answer
+        final_prompt = f"""You are a chemistry expert. Synthesize this comprehensive reaction analysis into a clear, educational explanation:
         
 Reaction SMILES: {reaction_smiles}
 
-Step-by-step tool outputs:
-- Compound/Reaction Names: {full_info['Names']}
-- Functional Groups: {full_info['Functional Groups']}
-- Bond Changes: {full_info['Bond Changes']}
+The following tool outputs provide different perspectives on this reaction:
+
+VISUALIZATION:
+{full_info['Visualization']}
+
+COMPOUND/REACTION NAMES:
+{full_info['Names']}
+
+FUNCTIONAL GROUPS ANALYSIS:
+{full_info['Functional Groups']}
+
+BOND CHANGES ANALYSIS:
+{full_info['Bond Changes']}
+
+REACTION CLASSIFICATION AND INFORMATION:
+{full_info['Reaction Classification']}
+
+Provide a thorough, well-structured explanation of this reaction that:
+1. Begins with a high-level summary of what type of reaction this is
+2. Explains what happens at the molecular level (bonds broken/formed)
+3. Discusses the functional group transformations
+4. Includes relevant details about the reaction mechanism
+5. Mentions common applications or importance of this reaction type
 
 Please give a complete and readable explanation of this reaction.
-
-Answer:"""
+"""
 
         response = llm.invoke(final_prompt)
-        return response.content.strip()
+        return {
+            'visualization_path': full_info['Visualization'] if 'Visualization' in full_info and not full_info['Visualization'].startswith('Error') else None,
+            'analysis': response.content.strip(),
+            'reaction_classification': full_info.get('Reaction Classification', "No classification available")
+        }
     
     except Exception as e:
-        return f"Error in full analysis: {str(e)}"
+        return {
+            'visualization_path': None,
+            'analysis': f"Error in full analysis: {str(e)}"
+        }
 
-# 🔍 Main query function
+# Update enhanced_query function to handle the new visualization return format
 def enhanced_query(query, callbacks=None):
     try:
         # Check if it's a full analysis request
@@ -317,14 +362,40 @@ def enhanced_query(query, callbacks=None):
                     # Simple reaction with generic reactant
                     return handle_full_info(query, f"[R]>>{product_smiles}")
                 
-                return "Could not extract reaction SMILES from the query. Please provide a valid reaction SMILES or product SMILES."
+                return {"visualization_path": None, "analysis": "Could not extract reaction SMILES from the query. Please provide a valid reaction SMILES or product SMILES."}
+        
+        # NEW ADDITION: Check if it's just a visualization request
+        elif any(term in query.lower() for term in ["visual", "picture", "image", "show", "draw", "representation"]):
+            # Extract SMILES from query using regex
+            smiles_pattern = r"([A-Za-z0-9@\[\]\.\+\-\=\#\:\(\)\\\/;\$\%\|\{\}]+>>[A-Za-z0-9@\[\]\.\+\-\=\#\:\(\)\\\/;\$\%\|\{\}]*)"
+            match = re.search(smiles_pattern, query)
+            
+            if match:
+                reaction_smiles = match.group(1)
+                # Only use the visualizer tool
+                tool_dict = {tool.name.lower(): tool for tool in tools}
+                visualizer_tool = tool_dict.get("chemvisualizer")
+                
+                if visualizer_tool:
+                    try:
+                        viz_path = visualizer_tool.run(reaction_smiles)
+                        return {
+                            "visualization_path": viz_path,
+                            "analysis": f"Visual representation of the reaction: {reaction_smiles}"
+                        }
+                    except Exception as e:
+                        return {"visualization_path": None, "analysis": f"Error visualizing reaction: {str(e)}"}
+                else:
+                    return {"visualization_path": None, "analysis": "ChemVisualizer tool not found"}
+            else:
+                return {"visualization_path": None, "analysis": "Could not extract reaction SMILES from the visualization request. Please provide a valid reaction SMILES."}
 
         # Otherwise, use normal agent
         result = agent.invoke({"input": query}, {"callbacks": callbacks} if callbacks else {})
-        return extract_final_answer(result.get("output", ""))
+        return {"visualization_path": None, "analysis": extract_final_answer(result.get("output", ""))}
 
     except Exception as e:
-        return f"Error occurred: {str(e)}"
+        return {"visualization_path": None, "analysis": f"Error occurred: {str(e)}"}
 
 # Retrosynthesis API function
 def get_retrosynthesis(compound_name):

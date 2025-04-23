@@ -1,5 +1,2 @@
-__pycache__/
-.env
-*.pyc
+RetroSynthesisAgent/
 .DS_Store
-env/

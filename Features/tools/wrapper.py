@@ -1,12 +1,13 @@
 from langchain.tools import Tool
-from tools.retrosynthesis import RetroSynthesis
+from tools.retrosynthesis import run_retrosynthesis
 from tools.funcgroups import FuncGroups
 from tools.name2smiles import NameToSMILES
 from tools.smiles2name import SMILES2Name
+from tools.visualizer import ChemVisualizer
 from tools.bond import BondChangeAnalyzer  
+from tools.asckos import ReactionClassifier
 
 def get_retrosynthesis_tool():
-    tool = RetroSynthesis()
     return Tool(
         name="RetroSynthesis",
         description=(
@@ -14,7 +15,7 @@ def get_retrosynthesis_tool():
             "Provide a compound name (IUPAC or common name) as input. "
             "Returns a list of reaction steps, conditions, and SMILES notation."
         ),
-        func=tool._run,
+        func=run_retrosynthesis,  # Pass the function directly, not calling it
     )
 
 
@@ -60,6 +61,30 @@ def get_bond_analyzer_tool():
             "Use this tool to identify bonds broken, formed, and changed in a chemical reaction. "
             "Provide a reaction SMILES string as input. "
             "Returns lists of broken bonds, formed bonds, and bonds that changed type (e.g., single to double)."
+        ),
+        func=tool._run,
+    )
+
+def get_visualizer_tool():
+    tool = ChemVisualizer()
+    return Tool(
+        name="ChemVisualizer",
+        description=(
+            "Use this tool to visualize molecules or reactions from SMILES strings. "
+            "Provide a SMILES or reaction SMILES string as input. "
+            "Returns the path to the generated image file."
+        ),
+        func=tool._run,
+    )
+
+def get_reaction_classifier_tool():
+    tool = ReactionClassifier()
+    return Tool(
+        name="ReactionClassifier",
+        description=(
+            "Use this tool to classify chemical reaction types based on reaction SMILES and get detailed information. "
+            "Provide a valid reaction SMILES string as input. "
+            "Returns the most likely reaction type, confidence level, and educational information about the reaction."
         ),
         func=tool._run,
     )

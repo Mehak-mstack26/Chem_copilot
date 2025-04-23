@@ -1,0 +1,11 @@
+langchain
+langchain-openai
+openai
+pydantic
+langchain-community
+rdkit
+rxnmapper
+requests
+python-dotenv
+urllib3
+streamlit
