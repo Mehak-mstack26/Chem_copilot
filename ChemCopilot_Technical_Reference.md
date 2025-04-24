@@ -1,304 +1,683 @@
-# ChemCopilot User Guide
+# ChemCopilot Technical Reference
 
-This guide provides detailed instructions on how to use ChemCopilot for retrosynthetic analysis and chemical reaction analysis.
+This technical reference provides detailed information about the internal workings of ChemCopilot, including code structure, algorithms, data flows, and integration points.
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
-2. [Retrosynthesis Analysis](#retrosynthesis-analysis)
-3. [Reaction Analysis](#reaction-analysis)
-4. [Advanced Features](#advanced-features)
-5. [Command Line Interface](#command-line-interface)
-6. [API Usage](#api-usage)
-7. [Tips and Best Practices](#tips-and-best-practices)
+1. [System Architecture](#system-architecture)
+2. [RetroSynthesisAgent Module](#retrosynthesisagent-module)
+3. [Features Module](#features-module)
+4. [Data Structures](#data-structures)
+5. [Algorithms](#algorithms)
+6. [API Reference](#api-reference)
+7. [Configuration Options](#configuration-options)
+8. [Integration Points](#integration-points)
+9. [Performance Considerations](#performance-considerations)
 
-## Getting Started
+## System Architecture
 
-### Launching ChemCopilot
+ChemCopilot follows a modular architecture with two main components:
 
-1. Start the RetroSynthesisAgent API:
-   ```bash
-   cd RetroSynthesisAgent
-   uvicorn api:app --reload --port 8000
-   ```
+1. **RetroSynthesisAgent**: Handles retrosynthetic analysis
+2. **Features**: Provides chemistry tools and web interface
 
-2. Start the web interface:
-   ```bash
-   cd Features
-   streamlit run app.py
-   ```
+These components communicate through well-defined interfaces, allowing them to be used independently or together.
 
-3. Open your web browser and navigate to http://localhost:8501
+### High-Level Architecture Diagram
 
-### Web Interface Overview
-
-The ChemCopilot web interface consists of:
-
-- **Header**: Application title and description
-- **Sidebar**: Tools information and example queries
-- **Main Content Area**: Input fields and results display
-- **Footer**: Application information
-
-## Retrosynthesis Analysis
-
-Retrosynthesis analysis helps you find synthesis pathways for target molecules.
-
-### Basic Retrosynthesis Search
-
-1. Enter the target compound name in the "Enter compound name" field
-   - Example: "flubendiamide" or "2-amino-5-chloro-3-methyl benzoic acid"
-   
-2. Click the "Search Retrosynthesis" button
-
-3. Wait for the system to:
-   - Download relevant scientific literature
-   - Extract reactions from the papers
-   - Build a retrosynthetic tree
-   - Identify possible synthesis pathways
-   - Recommend the optimal pathway
-
-4. Review the results:
-   - **Recommended Synthesis Route**: The optimal pathway
-   - **Reactions**: Individual reaction steps with details
-
-### Understanding Retrosynthesis Results
-
-Each reaction in the results includes:
-
-- **Reaction Index**: Unique identifier for the reaction
-- **Reactants**: Starting materials for the reaction
-- **Products**: Compounds produced by the reaction
-- **Conditions**: Reaction conditions (temperature, pressure, catalyst, solvent, etc.)
-- **Source**: Reference to the scientific literature
-
-Reactions marked as "Recommended" form the optimal synthesis pathway.
-
-### Analyzing Individual Reactions
-
-To analyze a specific reaction from the retrosynthesis results:
-
-1. Click the "Analyze Reaction" button next to the reaction of interest
-2. The system will convert the reaction to SMILES notation and perform detailed analysis
-3. Review the analysis results, including:
-   - Reaction type
-   - Bond changes
-   - Functional group transformations
-   - Mechanism
-   - Industrial relevance
-
-## Reaction Analysis
-
-The reaction analysis feature provides detailed information about chemical reactions.
-
-### Analyzing a Reaction
-
-1. Enter a reaction query in the input field
-   - Format: "Give full information about this rxn [REACTION_SMILES]"
-   - Example: "Give full information about this rxn CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]"
-   
-2. Click the "Analyze" button
-
-3. Review the analysis results:
-   - **Reaction Type**: Classification of the reaction
-   - **Bond Changes**: Bonds formed and broken
-   - **Functional Group Transformations**: Changes in functional groups
-   - **Mechanism**: Proposed reaction mechanism
-   - **Industrial Relevance**: Applications in industry
-   - **Visualization**: Graphical representation of the reaction
-
-### Using Chemical Names Instead of SMILES
-
-If you don't have SMILES notation:
-
-1. Enter reactants and products by name
-   - Example: "Analyze the reaction between ethanol and acetic acid to form ethyl acetate and water"
-   
-2. The system will convert chemical names to SMILES notation and perform the analysis
-
-### Asking Follow-up Questions
-
-After analyzing a reaction, you can ask follow-up questions:
-
-1. Enter your question in the "Ask About This Reaction" field
-   - Example: "What is the mechanism of this reaction?"
-   - Example: "How does this reaction relate to industrial processes?"
-   
-2. Click the "Ask Question" button
-
-3. Review the answer provided by the system
-
-## Advanced Features
-
-### Chemical Name to SMILES Conversion
-
-To convert a chemical name to SMILES notation:
-
-1. Enter a query like "Convert [CHEMICAL_NAME] to SMILES"
-   - Example: "Convert ethanol to SMILES"
-   
-2. The system will return the SMILES notation for the compound
-
-### SMILES to Chemical Name Conversion
-
-To convert SMILES notation to a chemical name:
-
-1. Enter a query like "What is the name of [SMILES]"
-   - Example: "What is the name of CCO"
-   
-2. The system will return the chemical name for the SMILES notation
-
-### Functional Group Analysis
-
-To analyze functional groups in a molecule:
-
-1. Enter a query like "What functional groups are in [CHEMICAL_NAME or SMILES]"
-   - Example: "What functional groups are in aspirin"
-   - Example: "What functional groups are in CC(=O)OC1=CC=CC=C1C(=O)O"
-   
-2. The system will identify and list all functional groups in the molecule
-
-### Bond Change Analysis
-
-To analyze bond changes in a reaction:
-
-1. Enter a query like "What bonds change in this reaction: [REACTION_SMILES]"
-   - Example: "What bonds change in this reaction: CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]"
-   
-2. The system will identify bonds formed and broken during the reaction
-
-## Command Line Interface
-
-For advanced users, ChemCopilot can be run from the command line.
-
-### Running Retrosynthesis Analysis
-
-```bash
-cd RetroSynthesisAgent
-python main.py --material "Polyimide" --num_results 10 --alignment True --expansion True --filtration False
+```
+┌─────────────────────────────────────┐      ┌─────────────────────────┐
+│           Web Interface             │      │                         │
+│        (Streamlit - app.py)         │◄────►│    Chemistry Tools      │
+└───────────────┬─────────────────────┘      │    (Features/tools)     │
+                │                             └─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────┐      ┌─────────────────────────┐
+│       RetroSynthesisAgent API       │◄────►│   Tree Visualization    │
+│             (api.py)                │      │      (vistree.py)       │
+└───────────────┬─────────────────────┘      └─────────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────┐
+│     RetroSynthesisAgent Core        │
+│           (main.py)                 │
+└───────────────┬─────────────────────┘
+                │
+                ▼
+┌─────────────────────────────────────┐      ┌─────────────────────────┐
+│        PDF Processing Pipeline      │◄────►│      OpenAI API         │
+│  (pdfDownloader.py, pdfProcessor.py)│      │      (GPTAPI.py)        │
+└─────────────────────────────────────┘      └─────────────────────────┘
 ```
 
-Parameters:
-- `--material`: Target molecule name (required)
-- `--num_results`: Number of PDF papers to download (required)
-- `--alignment`: Whether to align entities (True/False, default: False)
-- `--expansion`: Whether to expand the tree with additional literature (True/False, default: False)
-- `--filtration`: Whether to filter reactions (True/False, default: False)
+## RetroSynthesisAgent Module
 
-### Visualizing the Retrosynthesis Tree
+### Main Entry Point (`main.py`)
 
-```bash
-cd RetroSynthesisAgent
-python vistree.py
-```
+The `main.py` file serves as the entry point for the RetroSynthesisAgent. It orchestrates the entire retrosynthesis process:
 
-This will start a web server for visualizing the retrosynthesis tree. Open your browser and navigate to http://localhost:8000 to view the tree.
+1. Parses command-line arguments
+2. Downloads relevant PDFs
+3. Processes PDFs to extract reactions
+4. Constructs the retrosynthetic tree
+5. Performs entity alignment (optional)
+6. Expands the tree with additional literature (optional)
+7. Filters reactions (optional)
+8. Recommends optimal synthesis pathways
 
-## API Usage
+Key functions:
+- `parse_arguments()`: Processes command-line arguments
+- `main()`: Main execution flow
+- `parse_reaction_data()`: Parses reaction data from text
+- `recommendReactions()`: Uses LLM to recommend optimal pathways
 
-ChemCopilot provides a REST API for integration with other applications.
+### PDF Downloader (`pdfDownloader.py`)
 
-### Retrosynthesis API
+The `PDFDownloader` class handles downloading scientific literature:
 
-**Endpoint**: `/retro-synthesis/`
-**Method**: POST
-**Payload**:
-```json
+- Uses Google Scholar to find relevant papers
+- Downloads PDFs from Sci-Hub
+- Manages parallel downloads with threading
+- Handles retries and error cases
+
+Key methods:
+- `get_scholar_titles()`: Searches Google Scholar for relevant papers
+- `title_href()`: Gets download links from Sci-Hub
+- `get_download_pdf()`: Downloads PDFs
+- `download_pdfs()`: Manages parallel downloads
+- `main()`: Orchestrates the download process
+
+### PDF Processor (`pdfProcessor.py`)
+
+The `PDFProcessor` class extracts and processes text from PDFs:
+
+- Converts PDFs to text
+- Uses LLM to extract chemical reactions
+- Formats reactions in a standardized way
+- Manages batch processing
+
+Key methods:
+- `pdf_to_long_string()`: Extracts text from PDFs
+- `process_pdfs_txt()`: Processes PDFs to extract reactions
+- `remove_references_section()`: Cleans up extracted text
+
+### Tree Builder (`treeBuilder.py`)
+
+The `Tree` and `Node` classes handle the construction and management of the retrosynthetic tree:
+
+- `Node`: Represents a chemical compound in the tree
+- `Tree`: Manages the overall tree structure
+- `CommonSubstanceDB`: Identifies common laboratory chemicals
+
+Key methods:
+- `construct_tree()`: Builds the retrosynthetic tree
+- `expand()`: Expands a node in the tree
+- `find_all_paths()`: Finds all possible synthesis pathways
+- `get_node_count()`: Counts nodes in the tree
+- `get_reactions_in_tree()`: Gets all reactions in the tree
+
+### Entity Alignment (`entityAlignment.py`)
+
+The `EntityAlignment` class standardizes chemical names:
+
+- Resolves synonyms and alternative names
+- Ensures consistent naming throughout the tree
+- Aligns the root node with the target compound
+
+Key methods:
+- `alignRootNode()`: Aligns the root node with the target compound
+- `entityAlignment_1()`: First pass of entity alignment
+- `entityAlignment_2()`: Second pass of entity alignment
+
+### Tree Expansion (`treeExpansion.py`)
+
+The `TreeExpansion` class expands the synthesis tree:
+
+- Searches for additional literature
+- Adds alternative synthesis routes
+- Updates the tree with new reactions
+
+Key methods:
+- `treeExpansion()`: Expands the tree with additional literature
+- `update_dict()`: Updates the reaction dictionary
+
+### Reactions Filtration (`reactionsFiltration.py`)
+
+The `ReactionsFiltration` class filters reactions:
+
+- Removes reactions with extreme conditions
+- Filters out reactions with toxic reagents
+- Ensures practical synthesis pathways
+
+Key methods:
+- `filterReactions()`: Filters reactions based on conditions
+- `filterPathways()`: Filters pathways based on validity
+- `getFullReactionPathways()`: Gets all reaction pathways
+
+### GPT API Integration (`GPTAPI.py`)
+
+The `GPTAPI` class interfaces with OpenAI's API:
+
+- Handles text-based queries
+- Processes images from PDFs
+- Manages API requests and responses
+
+Key methods:
+- `answer_wo_vision()`: Gets answers without vision capabilities
+- `answer_w_vision_img_list_txt()`: Gets answers with vision capabilities
+
+### Prompts (`prompts.py`)
+
+Contains prompt templates for various LLM tasks:
+
+- Reaction extraction
+- Entity alignment
+- Pathway recommendation
+- Reaction evaluation
+
+## Features Module
+
+### Web Interface (`app.py`)
+
+The Streamlit-based web application:
+
+- Provides user interface for all features
+- Integrates retrosynthesis and reaction analysis
+- Handles user input and displays results
+
+Key sections:
+- Retrosynthesis search
+- Reaction analysis
+- Follow-up questions
+- Visualization display
+
+### Chemistry Tools
+
+#### Name to SMILES (`name2smiles.py`)
+
+Converts chemical names to SMILES notation:
+
+- Uses LLM and chemical databases
+- Handles complex chemical nomenclature
+- Returns standardized SMILES
+
+#### SMILES to Name (`smiles2name.py`)
+
+Converts SMILES notation to chemical names:
+
+- Generates IUPAC and common names
+- Handles complex molecular structures
+- Provides human-readable names
+
+#### Functional Groups (`funcgroups.py`)
+
+Analyzes functional groups in molecules:
+
+- Identifies common functional groups
+- Categorizes by type and properties
+- Provides detailed descriptions
+
+#### Bond Analysis (`bond.py`)
+
+Analyzes bond changes in chemical reactions:
+
+- Identifies bonds formed and broken
+- Maps atoms between reactants and products
+- Visualizes bond changes
+
+#### Visualizer (`visualizer.py`)
+
+Generates visual representations:
+
+- Creates 2D molecular structures
+- Visualizes reactions with atom mapping
+- Highlights bond changes
+
+#### Retrosynthesis Interface (`retrosynthesis.py`)
+
+Interfaces with the RetroSynthesisAgent:
+
+- Formats requests for the API
+- Processes and displays results
+- Handles error cases
+
+## Data Structures
+
+### Reaction Dictionary
+
+```python
 {
-  "material": "flubendiamide",
-  "num_results": 10,
-  "alignment": true,
-  "expansion": true,
-  "filtration": false
+    "idx": "1",
+    "reactants": ["compound A", "compound B"],
+    "products": ["target compound"],
+    "conditions": {
+        "temperature": "25°C",
+        "solvent": "water",
+        "catalyst": "acid"
+    },
+    "source": "Journal of Chemistry, 2020",
+    "source_link": "https://doi.org/..."
 }
 ```
 
-**Response**:
+### Node Structure
+
+```python
+class Node:
+    def __init__(self, substance, reactions, product_dict,
+                 fathers_set=None, father=None, reaction_index=None,
+                 reaction_line=None, cache_func=None, unexpandable_substances=None):
+        self.reaction_index = reaction_index  # Index of the reaction that produced this node
+        self.substance = substance  # Chemical name
+        self.children = []  # Child nodes (reactants)
+        self.fathers_set = fathers_set  # Set of ancestor nodes
+        self.father = father  # Parent node
+        self.reaction_line = reaction_line  # Path of reactions from root
+        self.is_leaf = False  # Whether this is a leaf node
+        self.cache_func = cache_func  # Function to check if substance is common
+        self.reactions = reactions  # All available reactions
+        self.product_dict = product_dict  # Dictionary mapping products to reactions
+        self.unexpandable_substances = unexpandable_substances  # Set of substances that cannot be expanded
+```
+
+### Tree Structure
+
+```python
+class Tree:
+    def __init__(self, target_substance, result_dict=None, reactions_txt=None, reactions=None):
+        self.reactions = reactions  # Dictionary of all reactions
+        self.product_dict = self.get_product_dict(self.reactions)  # Maps products to reactions
+        self.target_substance = target_substance  # Target molecule
+        self.reaction_infos = set()  # Set of reaction information
+        self.all_path = []  # All possible synthesis pathways
+        self.db = CommonSubstanceDB()  # Database of common substances
+        self.unexpandable_substances = set()  # Substances that cannot be expanded
+        self.root = Node(target_substance, self.reactions, self.product_dict,
+                         cache_func=self.db.is_common_chemical_cached,
+                         unexpandable_substances=self.unexpandable_substances)
+```
+
+## Algorithms
+
+### Retrosynthetic Tree Construction
+
+The retrosynthetic tree is constructed using a recursive algorithm:
+
+1. Start with the target molecule as the root node
+2. For each node:
+   a. Check if it's a common laboratory chemical (leaf node)
+   b. If not, find reactions that produce this compound
+   c. For each reaction, create child nodes for the reactants
+   d. Recursively expand each child node
+   e. Remove cycles (where a compound appears in its own synthesis path)
+3. Continue until all branches end in common chemicals or cannot be expanded further
+
+```python
+def expand(self) -> bool:
+    # Check if this is a common chemical (leaf node)
+    if self.cache_func(self.substance):
+        self.is_leaf = True
+        return True
+    
+    # Find reactions that produce this compound
+    reactions_idxs = self.product_dict.get(self.substance, [])
+    
+    # If no reactions found, this compound cannot be expanded
+    if len(reactions_idxs) == 0:
+        self.unexpandable_substances.add(self.substance)
+        return False
+    
+    # For each reaction, create child nodes for the reactants
+    for reaction_idx in reactions_idxs:
+        reactants_list = self.reactions[reaction_idx]['reactants']
+        
+        # Add each reactant as a child node
+        for reactant in reactants_list:
+            child = self.add_child(reactant, reaction_idx)
+            
+            # Check for cycles
+            if child.substance in child.fathers_set:
+                self.remove_child_by_reaction(reaction_idx)
+                break
+            
+            # Recursively expand the child node
+            is_valid = child.expand()
+            
+            # If the child cannot be expanded, mark it as invalid
+            if not is_valid:
+                child.is_leaf = False
+                continue
+    
+    # If no valid children, this node cannot be expanded
+    if len(self.children) == 0:
+        return False
+    
+    # Otherwise, this node can be expanded
+    return True
+```
+
+### Path Finding Algorithm
+
+To find all possible synthesis pathways:
+
+1. Start at the root node
+2. For each child node:
+   a. Recursively find all paths from the child to leaf nodes
+   b. Combine the reaction index with each path
+3. Deduplicate paths and remove supersets
+
+```python
+def search_reaction_pathways(self, node):
+    # If it's a leaf node, return an empty path
+    if node.is_leaf:
+        return [[]]
+    
+    # Store paths for each reaction
+    reaction_paths = {}
+    
+    for child in node.children:
+        # Recursively get paths from child nodes
+        paths = self.search_reaction_pathways(child)
+        reaction_idx = child.reaction_index
+        
+        # Store or combine paths for this reaction
+        if reaction_idx not in reaction_paths or reaction_paths[reaction_idx] == [[]]:
+            reaction_paths[reaction_idx] = paths
+        elif paths:
+            # Combine existing paths with new paths
+            combined_paths = []
+            for prev_path in reaction_paths[reaction_idx]:
+                for curr_path in paths:
+                    combined_paths.append(prev_path + curr_path)
+            reaction_paths[reaction_idx] = combined_paths
+    
+    # Aggregate all paths
+    pathways = []
+    for reaction_idx, paths in reaction_paths.items():
+        for path in paths:
+            pathways.append([reaction_idx] + path)
+    
+    return pathways
+```
+
+### Entity Alignment Algorithm
+
+The entity alignment process uses a two-pass approach:
+
+1. First pass: Align entities based on exact matches and simple variations
+2. Second pass: Use LLM to identify and standardize synonyms
+
+```python
+def entityAlignment_1(self, reactions_dict):
+    # First pass: Align based on exact matches and simple variations
+    standardized_dict = {}
+    for idx, reaction in reactions_dict.items():
+        # Process reactants and products
+        standardized_reactants = []
+        for reactant in reaction['reactants']:
+            # Apply standardization rules
+            standardized_reactant = self.standardize_name(reactant)
+            standardized_reactants.append(standardized_reactant)
+        
+        # Similar process for products
+        # ...
+        
+        # Update the reaction with standardized names
+        standardized_dict[idx] = {
+            'reactants': tuple(standardized_reactants),
+            'products': tuple(standardized_products),
+            'conditions': reaction['conditions'],
+            'source': reaction['source']
+        }
+    
+    return standardized_dict
+
+def entityAlignment_2(self, reactions_dict):
+    # Second pass: Use LLM to identify and standardize synonyms
+    # Extract all unique substances
+    all_substances = set()
+    for reaction in reactions_dict.values():
+        all_substances.update(reaction['reactants'])
+        all_substances.update(reaction['products'])
+    
+    # Use LLM to identify synonyms
+    synonyms = self.identify_synonyms(all_substances)
+    
+    # Apply synonym standardization
+    standardized_dict = {}
+    for idx, reaction in reactions_dict.items():
+        # Apply synonym standardization to reactants and products
+        # ...
+        
+        # Update the reaction with standardized names
+        standardized_dict[idx] = {
+            'reactants': tuple(standardized_reactants),
+            'products': tuple(standardized_products),
+            'conditions': reaction['conditions'],
+            'source': reaction['source']
+        }
+    
+    return standardized_dict
+```
+
+## API Reference
+
+### RetroSynthesisAgent API
+
+#### Endpoint: `/retro-synthesis/`
+
+**Method**: POST
+
+**Request Body**:
 ```json
 {
-  "status": "success",
+  "material": "string",
+  "num_results": "integer",
+  "alignment": "boolean",
+  "expansion": "boolean",
+  "filtration": "boolean"
+}
+```
+
+**Response Body**:
+```json
+{
+  "status": "string",
   "data": {
     "reactions": [
       {
-        "idx": "1",
-        "reactants": ["compound A", "compound B"],
-        "products": ["target compound"],
-        "conditions": "temperature: 25°C, solvent: water",
-        "source": "Journal of Chemistry, 2020"
-      },
-      ...
+        "idx": "string",
+        "reactants": ["string"],
+        "products": ["string"],
+        "conditions": "string",
+        "source": "string",
+        "source_link": "string"
+      }
     ],
-    "recommended_indices": ["1", "3", "5"],
-    "reasoning": "This pathway is recommended because..."
+    "recommended_indices": ["string"],
+    "reasoning": "string"
   }
 }
 ```
 
-### Example API Call with Python
+**Status Codes**:
+- 200: Success
+- 400: Bad Request
+- 500: Internal Server Error
 
-```python
-import requests
+#### Endpoint: `/`
 
-url = "http://localhost:8000/retro-synthesis/"
-payload = {
-  "material": "flubendiamide",
-  "num_results": 10,
-  "alignment": True,
-  "expansion": True,
-  "filtration": False
+**Method**: GET
+
+**Response Body**:
+```json
+{
+  "message": "RetroSynthesisAgent API is running."
 }
-
-response = requests.post(url, json=payload)
-data = response.json()
-
-if data["status"] == "success":
-    print(f"Found {len(data['data']['reactions'])} reactions")
-    print(f"Recommended pathway: {data['data']['recommended_indices']}")
-    print(f"Reasoning: {data['data']['reasoning']}")
-else:
-    print(f"Error: {data.get('message', 'Unknown error')}")
 ```
 
-## Tips and Best Practices
+### Tree Visualization API
 
-### Optimizing Retrosynthesis Results
+#### Endpoint: `/api/double`
 
-1. **Use specific compound names**: More specific names yield better results
-   - Good: "2,4-dinitrophenylhydrazine"
-   - Less good: "DNPH" or "dinitrophenylhydrazine"
+**Method**: GET
 
-2. **Adjust parameters based on complexity**:
-   - For simple molecules: `--num_results 5 --expansion False`
-   - For complex molecules: `--num_results 10 --expansion True`
+**Response Body**:
+```json
+{
+  "bigTree": {
+    "name": "string",
+    "children": [
+      {
+        "name": "string",
+        "children": [],
+        "is_leaf": "boolean"
+      }
+    ],
+    "is_leaf": "boolean"
+  },
+  "smallTree": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  }
+}
+```
 
-3. **Use entity alignment for consistent results**:
-   - Always set `--alignment True` unless you have a specific reason not to
+#### Endpoint: `/api/three`
 
-### Improving Reaction Analysis
+**Method**: GET
 
-1. **Provide complete SMILES notation** including all reactants, products, and spectator ions
-   - Good: "CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]"
-   - Less good: "CCCl.CCO>>CCOCC"
+**Response Body**:
+```json
+{
+  "main": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  },
+  "son": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  },
+  "path1": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  }
+}
+```
 
-2. **Ask specific questions** for more detailed analysis
-   - Good: "What is the mechanism of the Williamson ether synthesis reaction CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]?"
-   - Less good: "Tell me about this reaction CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]"
+#### Endpoint: `/api/quad`
 
-3. **Use follow-up questions** to explore specific aspects of a reaction
+**Method**: GET
 
-### Handling Large Molecules
+**Response Body**:
+```json
+{
+  "main": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  },
+  "son": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  },
+  "path1": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  },
+  "path2": {
+    "name": "string",
+    "children": [],
+    "is_leaf": "boolean"
+  }
+}
+```
 
-For large or complex molecules:
+## Configuration Options
 
-1. Break down the synthesis into smaller parts
-2. Analyze each part separately
-3. Combine the results to form a complete synthesis pathway
+### Environment Variables
 
-### Troubleshooting Common Issues
+| Variable | Description | Default |
+|----------|-------------|---------|
+| API_KEY | OpenAI API key | None |
+| BASE_URL | OpenAI API base URL | https://api.openai.com/v1 |
+| HEADERS | Headers for Sci-Hub access | None |
+| COOKIES | Cookies for Sci-Hub access | None |
 
-1. **No results found**: Try alternative names for the target compound or increase `--num_results`
+### Command Line Arguments
 
-2. **Incorrect reaction analysis**: Verify SMILES notation is correct and complete
+| Argument | Description | Default |
+|----------|-------------|---------|
+| --material | Target molecule name | Required |
+| --num_results | Number of PDF papers to download | Required |
+| --alignment | Whether to align entities | False |
+| --expansion | Whether to expand the tree | False |
+| --filtration | Whether to filter reactions | False |
 
-3. **Slow performance**: Reduce `--num_results` or disable `--expansion` for faster results
+### Folder Structure
 
-4. **PDF download failures**: Check internet connection and Sci-Hub access
+| Folder | Description |
+|--------|-------------|
+| pdf_pi | Downloaded PDFs |
+| res_pi | Extracted reactions |
+| tree_pi | Saved trees |
+
+## Integration Points
+
+### Integrating with External Chemical Databases
+
+ChemCopilot can be integrated with external chemical databases:
+
+1. Modify `CommonSubstanceDB` in `treeBuilder.py` to query additional databases
+2. Add API keys and endpoints to the `.env` file
+3. Implement database-specific query functions
+
+### Extending with Custom Chemistry Tools
+
+To add a new chemistry tool:
+
+1. Create a new Python file in the `Features/tools` directory
+2. Implement the tool as a class with a `_run` method
+3. Add the tool to the `app.py` file
+4. Update the sidebar in `app.py` to include the new tool
+
+### Integrating with Laboratory Automation Systems
+
+ChemCopilot can be integrated with laboratory automation systems:
+
+1. Use the RetroSynthesisAgent API to get synthesis pathways
+2. Convert the pathways to machine-readable instructions
+3. Send the instructions to the laboratory automation system
+
+## Performance Considerations
+
+### Optimizing PDF Processing
+
+- Use batch processing to handle large numbers of PDFs
+- Implement caching to avoid reprocessing the same PDFs
+- Use parallel processing for PDF text extraction
+
+### Optimizing Tree Construction
+
+- Implement memoization for common subproblems
+- Use pruning to remove unlikely synthesis pathways early
+- Implement lazy evaluation for tree expansion
+
+### Optimizing API Requests
+
+- Implement request batching to reduce API calls
+- Use caching to avoid redundant API calls
+- Implement rate limiting to avoid API throttling
+
+### Memory Management
+
+- Use generators for large data structures
+- Implement pagination for large result sets
+- Use streaming responses for large API responses
