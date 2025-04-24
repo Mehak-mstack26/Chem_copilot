@@ -65,7 +65,8 @@ pip install -r requirements.txt
 2. In a new terminal, start the ChemCopilot web interface:
 ```bash
 conda activate retrosyn
-cd chemcopilot
+cd ..
+cd Features
 python -m streamlit run app.py
 ```
 3. Open your browser and navigate to http://localhost:8501
