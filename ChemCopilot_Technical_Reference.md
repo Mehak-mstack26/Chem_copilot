@@ -5,51 +5,70 @@ This technical reference provides detailed information about the internal workin
 ## Table of Contents
 
 1. [System Architecture](#system-architecture)
-2. [RetroSynthesisAgent Module](#retrosynthesisagent-module)
-3. [Features Module](#features-module)
-4. [Data Structures](#data-structures)
-5. [Algorithms](#algorithms)
-6. [API Reference](#api-reference)
-7. [Configuration Options](#configuration-options)
-8. [Integration Points](#integration-points)
-9. [Performance Considerations](#performance-considerations)
+2. [Components Overview](#components-overview)
+3. [RetroSynthesisAgent Module](#retrosynthesisagent-module)
+4. [Features Module](#features-module)
+5. [Data Structures](#data-structures)
+6. [Algorithms](#algorithms)
+7. [API Reference](#api-reference)
+8. [Configuration Options](#configuration-options)
+9. [Integration Points](#integration-points)
+10. [Performance Considerations](#performance-considerations)
 
 ## System Architecture
 
-ChemCopilot follows a modular architecture with two main components:
+ChemCopilot follows a modular architecture with two primary components:
 
 1. **RetroSynthesisAgent**: Handles retrosynthetic analysis
-2. **Features**: Provides chemistry tools and web interface
+2. **Features Repository**: Provides chemistry tools and web interface
 
 These components communicate through well-defined interfaces, allowing them to be used independently or together.
 
 ### High-Level Architecture Diagram
 
 ```
-┌─────────────────────────────────────┐      ┌─────────────────────────┐
-│           Web Interface             │      │                         │
-│        (Streamlit - app.py)         │◄────►│    Chemistry Tools      │
-└───────────────┬─────────────────────┘      │    (Features/tools)     │
-                │                             └─────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────┐      ┌─────────────────────────┐
-│       RetroSynthesisAgent API       │◄────►│   Tree Visualization    │
-│             (api.py)                │      │      (vistree.py)       │
-└───────────────┬─────────────────────┘      └─────────────────────────┘
-                │
-                ▼
 ┌─────────────────────────────────────┐
-│     RetroSynthesisAgent Core        │
-│           (main.py)                 │
+│           Streamlit UI              │
+│           (app.py)                  │
 └───────────────┬─────────────────────┘
                 │
                 ▼
-┌─────────────────────────────────────┐      ┌─────────────────────────┐
-│        PDF Processing Pipeline      │◄────►│      OpenAI API         │
-│  (pdfDownloader.py, pdfProcessor.py)│      │      (GPTAPI.py)        │
-└─────────────────────────────────────┘      └─────────────────────────┘
+┌─────────────────────┐      ┌─────────────────────┐
+│  Retrosynthesis     │─────▶│ Features Repository │
+│  Agent              │      │                     │
+└─────────┬───────────┘      └─────────┬───────────┘
+          │                            │
+          ▼                            ▼
+┌─────────────────────┐      ┌─────────────────────┐
+│ External Services   │      │   Features Tools    │
+│ - OpenAI API        │      │ - NameToSMILES     │
+│ - CACTUS           │      │ - SMILES2Name      │
+│ - RetroSynthesis DB │      │ - FuncGroups       │
+└─────────────────────┘      │ - BondChangeAnalyzer│
+                             │ - ChemVisualizer   │
+                             │ - ReactionClassifier│
+                             └─────────────────────┘
 ```
+
+## Components Overview
+
+ChemCopilot consists of two main components:
+
+### RetroSynthesisAgent
+The RetroSynthesisAgent is responsible for generating synthetic pathways for target compounds. It:
+
+- Downloads relevant scientific literature
+- Extracts chemical reactions from papers
+- Constructs retrosynthetic trees
+- Recommends optimal synthesis pathways
+
+### Features Repository
+The Features Repository provides chemistry analysis tools and a web interface. It:
+
+- Offers a Streamlit-based user interface
+- Provides various chemistry tools (functional group analysis, name-to-SMILES conversion, etc.)
+- Integrates with the RetroSynthesisAgent
+- Visualizes reaction pathways and molecular structures
 
 ## RetroSynthesisAgent Module
 
@@ -234,11 +253,27 @@ Generates visual representations:
 - Visualizes reactions with atom mapping
 - Highlights bond changes
 
+#### ReactionClassifier (`reactionClassifier.py`)
+
+Classifies reaction types:
+
+- Identifies reaction mechanisms
+- Categorizes by reaction class
+- Provides educational information about reactions
+
+#### Query Processing (`test.py`)
+
+Contains the enhanced_query function that coordinates the analysis pipeline:
+
+- Processes user queries about reactions
+- Calls appropriate chemistry tools based on query intent
+- Generates comprehensive reaction analyses
+- Handles visualization requests
+
 #### Retrosynthesis Interface (`retrosynthesis.py`)
 
 Interfaces with the RetroSynthesisAgent:
 
-- Formats requests for the API
 - Processes and displays results
 - Handles error cases
 
@@ -681,3 +716,5 @@ ChemCopilot can be integrated with laboratory automation systems:
 - Use generators for large data structures
 - Implement pagination for large result sets
 - Use streaming responses for large API responses
+
+

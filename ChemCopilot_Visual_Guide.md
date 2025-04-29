@@ -21,17 +21,29 @@ ChemCopilot consists of two main components that work together to provide compre
                                    │
                  ┌─────────────────┴─────────────────┐
                  ▼                                   ▼
-┌────────────────────────────────┐    ┌────────────────────────────────┐
-│    RetroSynthesisAgent         │    │    Features Module             │
+┌────────────────────────────────┐      
+│    RetroSynthesisAgent         │    │    Features Repository         │
 │                                │    │                                │
-│  • Literature retrieval        │    │  • Web interface               │
+│  • Literature retrieval        │    │  • Web interface (Streamlit)   │
 │  • Reaction extraction         │    │  • Name to SMILES conversion   │
 │  • Tree construction           │    │  • SMILES to name conversion   │
 │  • Entity alignment            │    │  • Functional group analysis   │
 │  • Tree expansion              │    │  • Bond change analysis        │
 │  • Reaction filtration         │    │  • Reaction visualization      │
-│  • Pathway recommendation      │    │  • Retrosynthesis interface    │
-└────────────────────────────────┘    └────────────────────────────────┘
+│  • Pathway recommendation      │    │  • Reaction classification     │
+└────────────────────────────────┘    
+              │                                       │
+              ▼                                       ▼
+┌────────────────────────────────┐    
+│      External Services         │    │       Features Tools           │
+│                                │    │                                │
+│  • OpenAI API                  │    │  • NameToSMILES                │
+│  • CACTUS                      │    │  • SMILES2Name                 │
+│  • RetroSynthesis DB           │    │  • FuncGroups                  │
+│                                │    │  • BondChangeAnalyzer          │
+│                                │    │  • ChemVisualizer              │
+│                                │    │  • ReactionClassifier          │
+└────────────────────────────────┘    
 ```
 
 ## Retrosynthesis Process
@@ -144,13 +156,13 @@ The retrosynthetic tree represents the hierarchical relationship between chemica
     ┌─────────┴──────────┐          ┌────────┴─────────┐
     │                    │          │                  │
 ┌───▼───┐           ┌───▼───┐  ┌───▼───┐         ┌───▼───┐
-│Reactant│           │Reactant│  │Reactant│         │Reactant│
-│   A    │           │   B    │  │   C    │         │   D    │
+│Reactant│          │Reactant│ │Reactant│        │Reactant│
+│   A    │          │   B    │ │   C    │        │   D    │
 └───┬───┘           └───┬───┘  └───┬───┘         └───┬───┘
     │                   │          │                 │
 ┌───▼───┐           ┌───▼───┐  ┌───▼───┐         ┌───▼───┐
-│Reaction│           │Reaction│  │Reaction│         │  Leaf │
-│   3    │           │   4    │  │   5    │         │ Node  │
+│Reaction│          │Reaction│ │Reaction│        │  Leaf │
+│   3    │          │   4    │ │   5    │        │ Node  │
 └───┬───┘           └───┬───┘  └───┬───┘         └───────┘
     │                   │          │
 ┌───▼───┐           ┌───▼───┐  ┌───▼───┐
@@ -311,18 +323,18 @@ The ChemCopilot web interface provides a user-friendly way to interact with the 
 │                                                                     │
 │ ┌─────────────────────────────────────────────────────────────────┐ │
 │ │ Step 1 (Recommended): Reaction 1                                │ │
-│ │ Reaction: Compound A + Compound B → Target Compound            │ │
-│ │ Conditions: Temperature: 25°C, Solvent: water                  │ │
-│ │ Source: Journal of Chemistry, 2020                             │ │
-│ │ [Analyze Reaction 1]                                           │ │
+│ │ Reaction: Compound A + Compound B → Target Compound             │ │
+│ │ Conditions: Temperature: 25°C, Solvent: water                   │ │
+│ │ Source: Journal of Chemistry, 2020                              │ │
+│ │ [Analyze Reaction 1]                                            │ │
 │ └─────────────────────────────────────────────────────────────────┘ │
 │                                                                     │
 │ ┌─────────────────────────────────────────────────────────────────┐ │
 │ │ Step 2: Reaction 2                                              │ │
-│ │ Reaction: Compound C + Compound D → Compound A                 │ │
-│ │ Conditions: Temperature: 50°C, Catalyst: acid                  │ │
-│ │ Source: Journal of Organic Chemistry, 2019                     │ │
-│ │ [Analyze Reaction 2]                                           │ │
+│ │ Reaction: Compound C + Compound D → Compound A                  │ │
+│ │ Conditions: Temperature: 50°C, Catalyst: acid                   │ │
+│ │ Source: Journal of Organic Chemistry, 2019                      │ │
+│ │ [Analyze Reaction 2]                                            │ │
 │ └─────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -337,7 +349,7 @@ The ChemCopilot web interface provides a user-friendly way to interact with the 
 ┌─────────────────────────────────────────────────────────────────────┐
 │ Selected Reaction                                                   │
 │                                                                     │
-│ CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]                               │
+│ CCCl.CC[O-].[Na+]>>CCOCC.[Na+].[Cl-]                                │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -367,6 +379,53 @@ The ChemCopilot web interface provides a user-friendly way to interact with the 
 │                                                                     │
 │ [_______________________________________________________] [Ask]     │
 └─────────────────────────────────────────────────────────────────────┘
+```
+
+### Chemcopilot Workflow 
+
+The overall workflow of ChemCopilot follows these steps:
+
+```
+          ┌───────────────┐
+          │     Start     │
+          └───────┬───────┘
+                  │
+                  ▼
+┌─────────────────────────────────────┐
+│           User Input                │
+│    (IUPAC or Common Name)           │
+└─────────────────┬───────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────┐
+│      Retrosynthesis Analysis        │
+│        (Multiple Pathways)          │
+└─────────────────┬───────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────┐
+│     Display Reaction Pathways       │
+│       (With Analysis Button)        │
+└─────────────────┬───────────────────┘
+                  │
+                  ▼
+          ┌───────┴───────┐
+          │   Analyze?    │
+          └───────┬───────┘
+       No         │         Yes
+        ┌─────────┴────────┐
+        │                  │
+        ▼                  ▼
+┌───────────────┐  ┌───────────────────┐
+│ Exit/New      │  │ Full Reaction     │
+│ Search        │  │ Analysis          │
+└───────┬───────┘  └─────────┬─────────┘
+        │                    │
+        │                    ▼
+        │          ┌───────────────────┐
+        └──────────┤ Follow-up         │
+                   │ Questions         │
+                   └───────────────────┘
 ```
 
 These visual representations should help users understand the structure and flow of ChemCopilot's interfaces and processes.
