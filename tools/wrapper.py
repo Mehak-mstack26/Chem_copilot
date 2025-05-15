@@ -1,23 +1,23 @@
 from langchain.tools import Tool
-from tools.retrosynthesis import run_retrosynthesis
+# from tools.retrosynthesis import run_retrosynthesis
 from tools.funcgroups import FuncGroups
 from tools.name2smiles import NameToSMILES
 from tools.smiles2name import SMILES2Name
 from tools.visualizer import ChemVisualizer
-from tools.bond import BondChangeAnalyzer  
+from tools.bond import BondChangeAnalyzer
 from tools.asckos import ReactionClassifier
+import os
 
-def get_retrosynthesis_tool():
-    return Tool(
-        name="RetroSynthesis",
-        description=(
-            "Use this tool to search for retrosynthesis pathways for a chemical compound. "
-            "Provide a compound name (IUPAC or common name) as input. "
-            "Returns a list of reaction steps, conditions, and SMILES notation."
-        ),
-        func=run_retrosynthesis,  # Pass the function directly, not calling it
-    )
-
+# def get_retrosynthesis_tool():
+#     return Tool(
+#         name="RetroSynthesis",
+#         description=(
+#             "Use this tool to search for retrosynthesis pathways for a chemical compound. "
+#             "Provide a compound name (IUPAC or common name) as input. "
+#             "Returns a list of reaction steps, conditions, and SMILES notation."
+#         ),
+#         func=run_retrosynthesis,  # Pass the function directly, not calling it
+#     )
 
 def get_funcgroups_tool():
     tool = FuncGroups()
@@ -78,7 +78,13 @@ def get_visualizer_tool():
     )
 
 def get_reaction_classifier_tool():
-    tool = ReactionClassifier()
+    # Set dataset paths if available in the environment (can be None)
+    dataset_path1 = os.environ.get('REACTION_DATASET_PATH1', None)
+    dataset_path2 = os.environ.get('REACTION_DATASET_PATH2', None)
+    
+    # Initialize the tool with optional dataset paths
+    tool = ReactionClassifier(dataset_path1, dataset_path2)
+    
     return Tool(
         name="ReactionClassifier",
         description=(

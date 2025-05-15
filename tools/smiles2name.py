@@ -3,6 +3,7 @@ from typing import Optional
 import requests
 import urllib.parse
 from langchain_openai import ChatOpenAI
+from api_config import api_key
 
 class SMILES2Name(BaseTool):
     name: str = "SMILES2Name"
@@ -30,7 +31,6 @@ class SMILES2Name(BaseTool):
         except Exception as e:
             return f"Exception: {str(e)}"
 
-
     def _try_cactus(self, smiles: str) -> Optional[str]:
         encoded = urllib.parse.quote(smiles) 
         url = f"https://cactus.nci.nih.gov/chemical/structure/{encoded}/iupac_name"
@@ -42,7 +42,6 @@ class SMILES2Name(BaseTool):
         except Exception as e:
             print(f"CACTUS error: {e}")
         return None
-
 
     def _try_pubchem(self, smiles: str) -> Optional[str]:
         # PubChem requires full encoding
@@ -56,8 +55,3 @@ class SMILES2Name(BaseTool):
         except Exception as e:
             print(f"PubChem error: {e}")
         return None
-
-
-
-
-
