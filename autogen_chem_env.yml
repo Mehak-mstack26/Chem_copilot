@@ -1,0 +1,30 @@
+name: autogen_chem_copilot
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - rdkit # rdkit from conda-forge is usually good
+  - urllib3 # Often managed by requests, but good to have
+  - requests
+  - pip:
+    - python-dotenv
+    # Pin transformers to a version known to be more stable with rxnmapper
+    - transformers==4.40.0
+    - tokenizers<0.20.0,>=0.13.0 # Often good to pin tokenizers with transformers
+    - sentencepiece # Often a dependency for transformers/tokenizers
+    - rxnmapper # This should now respect the already installed transformers
+    - pyautogen[retrievechat]>=0.2.20 # Using a slightly more recent pyautogen
+    - streamlit>=1.30.0
+    - streamlit-ketcher
+    # Add other pip dependencies like openai, pandas if not pulled automatically
+    - openai
+    - pandas
+    # torch, torchvision, torchaudio will be pulled by transformers/rxnmapper
+    # but let's add torch explicitly to guide its version if needed.
+    # PyTorch version often depends on your system (CPU/GPU, OS).
+    # For CPU on macOS arm64, a recent version should be fine.
+    # If issues persist, you might need to install torch separately via pip after env creation
+    # using the specific command from pytorch.org
+    - torch>=2.0.0

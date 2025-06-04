@@ -1,12 +1,26 @@
-langchain
-langchain-openai
-openai
-pydantic
-langchain-community
-rdkit
-rxnmapper
-requests
+# langchain
+# langchain-openai
+# openai
+# pydantic
+# langchain-community
+# rdkit
+# rxnmapper
+# requests
+# python-dotenv
+# urllib3
+# streamlit
+# streamlit_ketcher
+
+
+
 python-dotenv
-urllib3
-streamlit
-streamlit_ketcher
+transformers==4.40.0
+tokenizers<0.20.0,>=0.13.0
+sentencepiece
+rxnmapper
+pyautogen[retrievechat]>=0.2.20
+streamlit>=1.30.0
+streamlit-ketcher
+openai
+pandas
+torch>=2.0.0

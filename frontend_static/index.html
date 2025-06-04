@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChemCopilot - AI Chemistry Assistant</title>
+    <style>
+        /* YOUR EXISTING CSS - KEEP IT AS IS - NO CHANGES NEEDED HERE FOR THIS REQUEST */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f3460 100%);
+            min-height: 100vh;
+            overflow: hidden; /* You might want to change this to 'auto' or 'scroll' for the body if chat overflows */
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px; /* Or your preferred max-width */
+            margin: 0 auto;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); /* Added a subtle shadow */
+        }
+
+        .sidebar {
+            width: 300px; /* Fixed width for sidebar */
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
+            border-right: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Allow sidebar to scroll if content exceeds height */
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            /* background: linear-gradient(45deg, #10b981, #065f46); */
+            /* border-radius: 12px; */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: float 3s ease-in-out infinite;
+            /* box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); */
+            padding: 5px; /* Adjust as needed */
+            box-sizing: border-box;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .logo-text {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .quick-actions, .moi-section, .recent-chats { /* Added .moi-section */
+            margin-bottom: 24px;
+        }
+
+        .quick-actions h3, .moi-section h3, .recent-chats h3, .tools-section h3 { /* Added .tools-section h3 */
+            color: rgba(226, 232, 240, 0.9);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .action-btn, .clear-context-btn { /* Added .clear-context-btn */
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            color: #e2e8f0;
+            text-align: left;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .action-btn:hover, .clear-context-btn:hover {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .moi-display {
+            font-size: 13px;
+            color: #a0aec0; /* Lighter text for MOI details */
+            padding: 10px;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        .moi-display strong {
+            color: #cbd5e0; /* Slightly brighter for labels */
+        }
+
+        .tools-section { /* Takes remaining space if needed */
+            flex: 1; 
+            min-height: 100px; /* Ensure it has some minimum height */
+            /* Added margin-bottom to match other sections if it's not the last one, or if flex:1 doesn't push it enough */
+            margin-bottom: 24px; 
+        }
+        
+        .tool-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: rgba(226, 232, 240, 0.9); /* Brighter for tool name */
+            cursor: pointer;
+            margin-bottom: 6px;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            font-size: 14px;
+            font-weight: 600; /* Bolder tool name */
+        }
+        .tool-item:hover {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        .tool-description {
+            font-size: 13px; /* Slightly larger for readability */
+            color: rgba(226, 232, 240, 0.7);
+            padding: 10px 12px 12px 28px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border-radius: 0 0 8px 8px;
+            margin-top: -7px; /* Overlap slightly if item has top/bottom margin */
+            margin-bottom: 8px;
+            border-left: 3px solid #0d9488; /* Accent border */
+            display: none; /* Initially hidden */
+            line-height: 1.5;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .tool-description code { /* For usage examples */
+             background-color: rgba(0,0,0,0.3);
+             padding: 2px 5px;
+             border-radius: 4px;
+             font-family: 'Courier New', Courier, monospace;
+             font-size: 0.9em;
+             color: #93c5fd; /* Light blue for code */
+        }
+
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .chat-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        .chat-title {
+            color: #e2e8f0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(226, 232, 240, 0.8);
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-area {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-message-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 80%;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+        .user-message {
+            background: rgba(16, 185, 129, 0.15);
+            color: #e2e8f0;
+            margin-left: auto;
+            flex-direction: row-reverse;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .ai-message {
+            background: rgba(51, 65, 85, 0.8);
+            color: #e2e8f0;
+            margin-right: auto;
+            border: 1px solid rgba(71, 85, 105, 0.5);
+        }
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            color: white;
+        }
+        .user-message .avatar { background: linear-gradient(45deg, #065f46, #10b981); }
+        .ai-message .avatar { background: linear-gradient(45deg, #1e40af, #3b82f6); }
+        .message-text {
+            padding-top: 2px;
+        }
+        .message-text img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px solid rgba(129, 140, 153, 0.3);
+            background-color: rgba(255,255,255,0.05);
+            padding: 5px;
+        }
+        .message-text strong {
+            color: #a7f3d0;
+        }
+        .message-text pre {
+            background-color: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .message-text code {
+            background-color: rgba(0,0,0,0.2);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #bae6fd; /* Light blue for inline code */
+        }
+
+
+        .welcome-screen {
+            text-align: center;
+            color: #e2e8f0;
+            margin-top: 10%;
+        }
+
+        .welcome-title {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(45deg, #10b981, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-subtitle {
+            font-size: 20px;
+            margin-bottom: 32px;
+            opacity: 0.8;
+        }
+
+        .feature-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-top: 48px;
+        }
+
+        .feature-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            padding: 24px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            background: rgba(16, 185, 129, 0.1);
+            border-color: #10b981;
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(45deg, #10b981, #065f46);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .feature-desc {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .input-area {
+            padding: 24px 32px;
+            border-top: 1px solid rgba(16, 185, 129, 0.2);
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 16px 24px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(16, 185, 129, 0.3);
+            border-radius: 24px;
+            color: #e2e8f0;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-input::placeholder {
+            color: rgba(226, 232, 240, 0.5);
+        }
+
+        .chat-input:focus {
+            border-color: #10b981;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .input-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #e2e8f0;
+        }
+
+        .action-icon:hover {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+            transform: scale(1.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #10b981, #065f46);
+            border: 1px solid #10b981;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .molecular-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .molecule {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.6), transparent);
+            border-radius: 50%;
+            animation: float-molecule 20s infinite linear;
+        }
+
+        @keyframes float-molecule {
+            from {
+                transform: translateY(100vh) rotate(0deg);
+            }
+            to {
+                transform: translateY(-100px) rotate(360deg);
+            }
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: rgba(226, 232, 240, 0.7);
+            font-size: 14px;
+            margin-left: 24px;
+            padding: 10px 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="molecular-bg" id="molecularBg"></div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">
+                   <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABwAAAAcCAMAAABF0y+mAAAAclBMVEX5+fn8/Pz///+4u70yPEd2e4Ho6eoWJTMmMT0jLzvw8fG0t7pUW2NbYmmZnaFLU1sCGivIy80dKjeJjZIaJzUtOEPBw8YJHS1jaXDi4+Sfo6aBhYqoqq7b3d5scXgADySsr7IAFSdscnhBSVKUmJwAABqueeKzAAAAo0lEQVR4AWIYzgDQHD0kUBTDUABt7rNta/9L/GYxf50Up0pCAFQGTdcNyLeTadmO+2+eH4QPRWTHCbjLovSxhiy1Qv5JmHnhuISycmrBQmj35duDBWs8+segRZdafWBXA3SNw3Eabl9J7WqGsfC4Og65aZEat+tzAe3YRTJthD6VYOUy7I0aGYjJsK4O9zlql4kLhRLPe40Gz2tIqNN3ROys7QqbCgiDwulqZAAAAABJRU5ErkJggg==" alt="CHEMSTACK Copilot Logo">
+                </div>
+                <div class="logo-text">CHEMSTACK COPILOT</div>
+            </div>
+
+            <div class="moi-section">
+                <h3>Molecule of Interest</h3>
+                <div class="moi-display" id="moiDisplay">
+                    <strong>Name:</strong> <span id="moiName">Not Set</span><br>
+                    <strong>SMILES:</strong> <span id="moiSmiles">Not Set</span>
+                </div>
+                <button class="clear-context-btn" id="clearContextBtn" style="margin-top: 12px;">🗑️ Clear Context & MOI</button>
+            </div>
+            
+            <div class="quick-actions">
+                <h3>Quick Actions</h3>
+                <button class="action-btn" data-query="Give me full information about Aspirin">Full Info on Aspirin</button>
+                <button class="action-btn" data-query="What are the functional groups of CCO?">CCO Functional Groups</button>
+                <button class="action-btn" data-query="Visualize the structure of benzene">Visualize Benzene</button>
+                <button class="action-btn" data-query="Tell me about SN2 reactions">Explain SN2 Reactions</button>
+            </div>
+            
+            <div class="tools-section"> <!-- Renamed class -->
+                <h3>Tools Overview</h3>
+                <div id="toolsListContainer">
+                    <!-- Tools will be populated here by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-chat">
+            <div class="chat-header">
+                <div class="chat-title">Chemistry Assistant</div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>AI Online</span>
+                </div>
+            </div>
+            
+            <div class="chat-area" id="chatAreaScroll"> <!-- Added ID for scrolling -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <h1 class="welcome-title">Welcome to ChemCopilot</h1>
+                    <p class="welcome-subtitle">Your intelligent chemistry companion for equations, analysis, and discovery</p>
+                    
+                    <div class="feature-cards">
+                        <div class="feature-card" data-feature-query="Give me full information about Aspirin">
+                            <div class="feature-icon">ℹ️</div>
+                            <div class="feature-title">Full Chemical Analysis</div>
+                            <div class="feature-desc">Get a comprehensive breakdown of compounds or reactions by SMILES or name.</div>
+                        </div>
+                        <div class="feature-card" data-feature-query="What are the functional groups in CCO?">
+                            <div class="feature-icon">🧬</div>
+                            <div class="feature-title">SMILES & Name Tools</div>
+                            <div class="feature-desc">Convert between chemical names and SMILES, identify functional groups.</div>
+                        </div>
+                        <div class="feature-card" data-feature-query="Visualize the structure of caffeine">
+                            <div class="feature-icon">🖼️</div>
+                            <div class="feature-title">Structure Visualization</div>
+                            <div class="feature-desc">Generate 2D images of chemical structures from SMILES.</div>
+                        </div>
+                        <div class="feature-card" data-feature-query="Let's discuss Aspirin with SMILES CC(=O)OC1=CC=CC=C1C(=O)O. Please acknowledge.">
+                            <div class="feature-icon">💬</div>
+                            <div class="feature-title">Conversational Chat</div>
+                            <div class="feature-desc">Engage in context-aware discussions about molecules of interest.</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Typing indicator will be appended here by JS -->
+            </div>
+            
+            <div class="input-area">
+                <div class="input-container">
+                    <input type="text" class="chat-input" placeholder="Ask ChemCopilot..." id="chatInput">
+                    <div class="input-actions">
+                        <!-- <div class="action-icon" title="Upload File">📎</div> -->
+                        <!-- <div class="action-icon" title="Voice Input">🎤</div> -->
+                        <div class="action-icon send-btn" title="Send Message" id="sendBtn">🚀</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicatorDiv = document.getElementById('typingIndicator'); // If you keep the static one
+        const chatArea = document.getElementById('chatAreaScroll');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const molecularBg = document.getElementById('molecularBg');
+        const clearContextBtn = document.getElementById('clearContextBtn');
+
+        // MOI Display Elements
+        const moiNameDisplay = document.getElementById('moiName');
+        const moiSmilesDisplay = document.getElementById('moiSmiles');
+
+        // UPDATED Tools Data based on your backend functions
+        const toolsData = [
+            {
+                name: "Full Chemical Report",
+                description: "Provides a comprehensive analysis report for a chemical (name, SMILES, or CAS). E.g., <code>Full report for ethanol</code>",
+                exampleQuery: "Full report for ethanol"
+            },
+            {
+                name: "Identify Functional Groups",
+                description: "Identifies functional groups in a molecule or reaction. E.g., <code>What are the functional groups in CCO?</code> or <code>Functional groups in C=C.BrBr>>BrCCBr</code>",
+                exampleQuery: "What are the functional groups in CCO?"
+            },
+            {
+                name: "Name to SMILES",
+                description: "Converts a chemical name to its SMILES string. E.g., <code>SMILES for benzene</code>",
+                exampleQuery: "SMILES for benzene"
+            },
+            {
+                name: "SMILES to Name",
+                description: "Converts a SMILES string to its common chemical name. E.g., <code>Name for CC(=O)OC1=CC=CC=C1C(=O)O</code>",
+                exampleQuery: "Name for CC(=O)OC1=CC=CC=C1C(=O)O"
+            },
+            {
+                name: "Visualize Structure/Reaction",
+                description: "Generates a 2D image of a chemical structure or reaction. E.g., <code>Visualize aspirin</code> or <code>Visualize CCO>>CCCl</code>",
+                exampleQuery: "Visualize aspirin"
+            },
+            {
+                name: "Analyze Bond Changes",
+                description: "Analyzes bond changes (formed/broken) in a reaction. Provide reaction SMILES. E.g., <code>Analyze bond changes in [CH3:1][CH2:2][OH:3].[H:4][Cl:5]>>[CH3:1][CH2:2][Cl:5].[OH2:3]</code>",
+                exampleQuery: "Analyze bond changes in [CH3:1][CH2:2][OH:3].[H:4][Cl:5]>>[CH3:1][CH2:2][Cl:5].[OH2:3]"
+            },
+            {
+                name: "Classify Reaction",
+                description: "Classifies a reaction and provides details. Provide reaction SMILES. E.g., <code>Classify reaction C=C.BrBr>>BrCCBr</code>",
+                exampleQuery: "Classify reaction C=C.BrBr>>BrCCBr"
+            },
+            {
+                name: "Query Reaction Property",
+                description: "Queries a specific property (e.g., 'yield', 'catalyst') for a reaction. E.g., <code>What is the catalyst for C=C.BrBr>>BrCCBr?</code>",
+                exampleQuery: "What is the catalyst for C=C.BrBr>>BrCCBr?"
+            }
+        ];
+
+        // Tools Container Element
+        const toolsListContainer = document.getElementById('toolsListContainer');
+
+
+        // Helper to create and show typing indicator
+        let typingIndicatorElement = null;
+        function showTypingIndicator() {
+            if (!typingIndicatorElement) {
+                typingIndicatorElement = document.createElement('div');
+                typingIndicatorElement.className = 'typing-indicator';
+                typingIndicatorElement.innerHTML = `
+                    <span>ChemCopilot is thinking</span>
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+                    </div>`;
+            }
+            typingIndicatorElement.style.display = 'flex';
+            chatArea.appendChild(typingIndicatorElement);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            if (typingIndicatorElement) {
+                typingIndicatorElement.style.display = 'none';
+            }
+        }
+        
+        // Function to render markdown (basic version, for advanced use a library)
+        function renderMarkdown(mdText) {
+            if (!mdText) return '';
+            let html = mdText;
+            html = html.replace(/\n/g, '<br>');
+            html = html.replace(/\*\*(.*?)\*\*|__(.*?)__/g, '<strong>$1$2</strong>');
+            html = html.replace(/\*(.*?)\*|_(.*?)_/g, '<em>$1$2</em>');
+            html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+                const escapedCode = code.replace(/</g, '<').replace(/>/g, '>'); // Basic escape
+                return `<pre><code>${escapedCode.trim()}</code></pre>`;
+            });
+            html = html.replace(/`(.*?)`/g, (match, code) => {
+                 const escapedCode = code.replace(/</g, '<').replace(/>/g, '>'); // Basic escape for inline
+                return `<code>${escapedCode}</code>`;
+            });
+            return html;
+        }
+
+
+        function addMessageToChat(content, role = 'user', imageUrl = null) {
+            if (welcomeScreen && welcomeScreen.style.display !== 'none') {
+                welcomeScreen.style.display = 'none';
+            }
+            hideTypingIndicator(); 
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message-item', role === 'user' ? 'user-message' : 'ai-message');
+            
+            const avatar = document.createElement('div');
+            avatar.classList.add('avatar');
+            avatar.textContent = role === 'user' ? '🧑‍🔬' : '⚗️'; 
+            messageDiv.appendChild(avatar);
+
+            const messageContent = document.createElement('div');
+            messageContent.classList.add('message-text');
+            messageContent.innerHTML = renderMarkdown(content); 
+            messageDiv.appendChild(messageContent);
+
+            if (imageUrl) {
+                const finalImageUrl = imageUrl.startsWith('/') ? window.location.origin + imageUrl : imageUrl;
+                const imgContainer = document.createElement('div'); 
+                imgContainer.style.marginTop = '10px';
+                const imgElement = document.createElement('img');
+                imgElement.src = finalImageUrl;
+                imgElement.alt = "Chemical Visualization";
+                imgContainer.appendChild(imgElement);
+                messageContent.appendChild(imgContainer); 
+            }
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function updateMoiDisplay(name, smiles) {
+            moiNameDisplay.textContent = name || 'Not Set';
+            moiSmilesDisplay.textContent = smiles || 'Not Set';
+        }
+
+        async function fetchCurrentMoi() {
+            try {
+                const response = await fetch('/api/v1/get_moi_context'); 
+                if (response.ok) {
+                    const moiData = await response.json();
+                    updateMoiDisplay(moiData.name, moiData.smiles);
+                } else {
+                    console.error("Failed to fetch MOI, status:", response.status);
+                    updateMoiDisplay(null, null); 
+                }
+            } catch (error) {
+                console.error("Error fetching MOI:", error);
+                updateMoiDisplay(null, null); 
+            }
+        }
+
+        async function submitQuery(userInputText) {
+            const userInput = userInputText.trim();
+            if (!userInput) return;
+
+            addMessageToChat(userInput, 'user');
+            chatInput.value = ''; 
+            showTypingIndicator();
+
+            const endpoint = '/api/v1/copilot_query'; 
+            const payload = {
+                query: userInput,
+                clear_moi_before_query: false 
+            };
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+
+                hideTypingIndicator();
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    addMessageToChat(`Error ${response.status}: ${errorData.detail || response.statusText || (errorData.error ? `Backend Error: ${errorData.error}` : 'Unknown error')}`, 'ai');
+                    if (errorData.current_moi_name !== undefined || errorData.current_moi_smiles !== undefined) {
+                        updateMoiDisplay(errorData.current_moi_name, errorData.current_moi_smiles);
+                    }
+                    return;
+                }
+
+                const result = await response.json(); 
+                
+                let aiResponseText = result.analysis || "Processed.";
+                if (result.error) {
+                    aiResponseText = `<strong>Error:</strong> ${result.error}<br><br>${aiResponseText}`;
+                }
+                
+                addMessageToChat(aiResponseText, 'ai', result.visualization_path);
+                updateMoiDisplay(result.current_moi_name, result.current_moi_smiles);
+
+            } catch (error) {
+                hideTypingIndicator();
+                addMessageToChat(`Network or script error: ${error.message}`, 'ai');
+                console.error("Error submitting query:", error);
+                fetchCurrentMoi(); 
+            }
+        }
+
+        // Function to render tools
+        function renderTools() {
+            if (!toolsListContainer) return;
+            toolsListContainer.innerHTML = ''; // Clear existing tools
+
+            toolsData.forEach(tool => {
+                const toolItemDiv = document.createElement('div');
+                toolItemDiv.classList.add('tool-item');
+                toolItemDiv.textContent = tool.name;
+
+                const toolDescriptionDiv = document.createElement('div');
+                toolDescriptionDiv.classList.add('tool-description');
+                toolDescriptionDiv.innerHTML = tool.description; 
+
+                toolsListContainer.appendChild(toolItemDiv);
+                toolsListContainer.appendChild(toolDescriptionDiv);
+
+                toolItemDiv.addEventListener('click', () => {
+                    const isCurrentlyVisible = toolDescriptionDiv.style.display === 'block';
+                    toolsListContainer.querySelectorAll('.tool-description').forEach(desc => {
+                        desc.style.display = 'none';
+                    });
+                    if (!isCurrentlyVisible) {
+                        toolDescriptionDiv.style.display = 'block';
+                    }
+                    if (tool.exampleQuery) {
+                        chatInput.value = tool.exampleQuery;
+                        chatInput.focus();
+                    }
+                });
+            });
+        }
+
+
+        sendBtn.addEventListener('click', () => submitQuery(chatInput.value));
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitQuery(chatInput.value);
+            }
+        });
+        
+        document.querySelectorAll('.action-btn').forEach(element => { 
+            element.addEventListener('click', () => {
+                const query = element.dataset.query || element.textContent.trim();
+                chatInput.value = query;
+                chatInput.focus();
+                // Optionally auto-submit: submitQuery(query); 
+            });
+        });
+
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const query = card.dataset.featureQuery; 
+                if (query) {
+                    chatInput.value = query;
+                    chatInput.focus();
+                    submitQuery(query); 
+                }
+            });
+        });
+
+        clearContextBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/v1/clear_context', { method: 'POST' });
+
+                if (response.ok) {
+                    chatArea.innerHTML = ''; // Clear the chat display
+                    
+                    if (welcomeScreen) { // Reshow welcome screen if it exists
+                        chatArea.appendChild(welcomeScreen);
+                        welcomeScreen.style.display = 'block';
+                    }
+                    
+                    // MOI display will be updated to "Not Set" by this call
+                    fetchCurrentMoi(); 
+
+                    chatInput.focus(); // Put cursor back in input
+                } else {
+                    // Handle backend error in clearing context
+                    let errorDetail = "Failed to clear context on server.";
+                    try {
+                        const errorData = await response.json();
+                        if (errorData && errorData.detail) { errorDetail = errorData.detail; }
+                        else if (response.statusText) { errorDetail = `Error ${response.status}: ${response.statusText}`; }
+                    } catch (e) {
+                         if (response.statusText) { errorDetail = `Error ${response.status}: ${response.statusText}`; }
+                    }
+                    // If you want to display this error in the chat, be mindful if addMessageToChat causes issues
+                    // For now, let's console.error it, as it's a less common path
+                    console.error("Error clearing context on server:", errorDetail);
+                    // Optionally, add a simple alert or a non-chat-interfering notification
+                    // alert("Error: Could not clear context on the server.");
+                    addMessageToChat(errorDetail, 'ai'); // Or, if addMessageToChat is safe after debugging
+                }
+            } catch (error) {
+                console.error("Network error clearing context:", error.message);
+                // alert(`Network error: ${error.message}`);
+                addMessageToChat(`Network error clearing context: ${error.message}`, 'ai'); // Or if safe
+            }
+        });
+        
+        function createMoleculesBackground() {
+            if (!molecularBg) return;
+            for (let i = 0; i < 15; i++) {
+                const molecule = document.createElement('div');
+                molecule.className = 'molecule';
+                molecule.style.left = Math.random() * 100 + '%';
+                molecule.style.animationDelay = Math.random() * 20 + 's';
+                molecule.style.animationDuration = (15 + Math.random() * 10) + 's';
+                molecularBg.appendChild(molecule);
+            }
+        }
+        
+        // Initial setup
+        createMoleculesBackground();
+        fetchCurrentMoi(); 
+        renderTools(); 
+        chatInput.focus();
+
+    </script>
+</body>
+</html>
