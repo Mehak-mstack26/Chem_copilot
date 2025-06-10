@@ -3,12 +3,7 @@
 /static
 /output_csv
 /output_json
-enhanced_pathways_part1_searchable_pathways.json
-enhanced_pathways_part2_searchable_pathways.json
-enhanced_pathways_part3_searchable_pathways.json
-enhanced_pathways_part4_searchable_pathways.json
-enhanced_pathways_part5_searchable_pathways.json
-enhanced_pathways_part6_searchable_pathways.json
+/enhanced_pathways
 tools/__pycache__/
 __pycache__/
 full_input_smiles.txt
